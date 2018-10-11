@@ -23,6 +23,14 @@ var currentLocation = {
     what3words: "shelf.jetted.purple"
 };
 
+
+$( document ).ready(function() {
+    // Handler for .ready() called.
+    listChannels(compareNew);
+    loadEmojis();
+    console.log("App is initialized");
+});
+
 /**
  * Switch channels name in the right app bar
  * @param channelObject
@@ -35,14 +43,17 @@ function switchChannel(channelObject) {
     abortCreationMode();
 
     // Write the new channel to the right app bar using object property
-    document.getElementById('channel-name').innerHTML = channelObject.name;
+    //document.getElementById('channel-name').innerHTML = channelObject.name;
+    $('#channel-name').html(channelObject.name);
 
     // change the channel location using object property
-    document.getElementById('channel-location').innerHTML = 'by <a href="https://w3w.co/'
+    /*document.getElementById('channel-location').innerHTML = 'by <a href="https://w3w.co/'
         + channelObject.createdBy
         + '" target="_blank"><strong>'
         + channelObject.createdBy
-        + '</strong></a>';
+        + '</strong></a>';*/
+
+    $('#channel-location').html(' by <a href="http://w3w.co/'+channelObject.createdBy+'" target="_blank"><strong>'+channelObject.createdBy+'</strong></a>');
 
     //#9 selector adjusted for #btns #str
     $('#channel-star i').removeClass('fas far');
@@ -56,6 +67,20 @@ function switchChannel(channelObject) {
 
     /* store selected channel in global variable */
     currentChannel = channelObject;
+
+    showMessages();
+}
+
+function showMessages(){
+    $('#messages').empty();
+    console.log(currentChannel.messages.length+' messages');
+    var i=0;
+    while (i<currentChannel.messages.length){
+        $('#messages').append(createMessageElement(currentChannel.messages[i]));
+        i++;
+    }
+
+    $('#messages').scrollTop($('#messages').prop('scrollHeight'));
 }
 
 /* liking a channel on #click */
@@ -126,6 +151,17 @@ function Message(text) {
     this.text = text;
     // own message
     this.own = true;
+
+    this.number = ++currentChannel.messageCount;
+
+
+    var a = Date.parse(new Date());
+    var b = Date.parse(this.expiresOn);
+    var msgExpiresIn = Math.round((b-a)/(1000*60));
+    console.log(msgExpiresIn);
+    console.log(currentChannel.expiresIn);
+
+    currentChannel.expiresIn = (msgExpiresIn>currentChannel.expiresIn) ? msgExpiresIn : currentChannel.expiresIn;
 }
 
 function sendMessage() {
@@ -147,7 +183,7 @@ function sendMessage() {
     currentChannel.messages.push(message);
 
     // #10 #increase the messageCount of the current channel
-    currentChannel.messageCount+=1;
+    //currentChannel.messageCount+=1;
 
     // Adding the message to the messages-div
     $('#messages').append(createMessageElement(message));
@@ -157,6 +193,7 @@ function sendMessage() {
 
     // clear the #message input
     $('#message').val('');
+    listChannelsVoid();
 }
 
 /**
@@ -164,7 +201,7 @@ function sendMessage() {
  * @param messageObject a chat message object
  * @returns html element
  */
-function createMessageElement(messageObject) {
+/*function createMessageElement(messageObject) {
     // Calculating the expiresIn-time from the expiresOn-property
     var expiresIn = Math.round((messageObject.expiresOn - Date.now()) / 1000 / 60);
 
@@ -173,14 +210,51 @@ function createMessageElement(messageObject) {
         //this dynamically adds #own to the #message, based on the
         //ternary operator. We need () in order not to disrupt the return.
         (messageObject.own ? ' own' : '') +
-        '">' +
+        '" id="msg'+msgNumber+'">' +
         '<h3><a href="http://w3w.co/' + messageObject.createdBy + '" target="_blank">'+
         '<strong>' + messageObject.createdBy + '</strong></a>' +
         messageObject.createdOn.toLocaleString() +
         '<em>' + expiresIn + ' min. left</em></h3>' +
         '<p>' + messageObject.text + '</p>' +
-        '<button class="accent">+5 min.</button>' +
+        '<button class="accent" onclick="fiveMore('+msgNumber+')">+5 min.</button>' +
         '</div>';
+}*/
+
+function createMessageElement(messageObject){
+    var a = Date.parse(new Date());
+    var b = Date.parse(messageObject.expiresOn);
+    var msgExpiresIn = Math.round(10*(b-a)/(1000*60))/10;
+    var msgCreatedOn = messageObject.createdOn.toLocaleString();
+
+    var exitMessage = actualCreateMessageElement(messageObject.createdBy,msgCreatedOn,msgExpiresIn,messageObject.text,messageObject.own,messageObject.number);
+
+    return exitMessage;
+}
+
+function actualCreateMessageElement(a,b,c,d,e,f){
+
+    var msg = '<div class="message'+ (e ? ' own' : '') + '" id="msg'+f+'">';
+    msg += '<h3><a href="http://w3w.co/' + a + '" target="_blank"><strong>' + a + '</strong></a>';
+    msg += b + ' <em>' + c + ' min. left</em></h3>';
+    msg += '<p>' + d + '</p><button class="'+((c<5) ? 'primary': 'accent')+'" onclick="fiveMore('+f+')">+5 min.</button></div>';
+
+    return msg;
+}
+
+function fiveMore(a){
+    console.log("msg"+a);
+    var newTime = parseFloat($('#msg'+a+' h3 em').html())+5;
+    $('#msg'+a+' h3 em').html(newTime+' min. left');
+
+    newTime = new Date(Date.now() + newTime * 60 * 1000);
+
+    currentChannel.messages[a-1].expiresOn = newTime;
+
+    var a = Date.parse(new Date());
+    var b = Date.parse(newTime);
+    var msgExpiresIn = Math.round((b-a)/(1000*60));
+    currentChannel.expiresIn = (msgExpiresIn>currentChannel.expiresIn) ? msgExpiresIn : currentChannel.expiresIn;
+    listChannelsVoid();
 }
 
 /* #10 Three #compare functions to #sort channels */
@@ -214,17 +288,24 @@ function compareFavorites(channelA, channelB) {
     return channelA.starred ? -1 : 1;
 }
 
-function listChannels(criterion) {
-    // #10 #sorting: #sort channels#array by the criterion #parameter
-    channels.sort(criterion);
+function listChannelsVoid(){
 
-    // #10 #sorting #duplicate: empty list
     $('#channels ul').empty();
 
     /* #10 append channels from #array with a #for loop */
     for (i = 0; i < channels.length; i++) {
         $('#channels ul').append(createChannelElement(channels[i]));
     };
+
+    switchChannel(currentChannel);
+
+}
+
+function listChannels(criterion) {
+    // #10 #sorting: #sort channels#array by the criterion #parameter
+    channels.sort(criterion);
+
+    listChannelsVoid();
 }
 
 /**
@@ -237,7 +318,7 @@ function Channel(name) {
     this.createdBy = currentLocation.what3words;
     // set dates
     this.createdOn = new Date(); //now
-    this.expiresIn = 60; // this is just temporary
+    this.expiresIn = 0;
     // set name
     this.name = name;
     // set favourite
@@ -283,12 +364,13 @@ function createChannel() {
         // Return to normal view.
         abortCreationMode();
         // #show #new channel's data
-        document.getElementById('channel-name').innerHTML = channel.name;
+        /*document.getElementById('channel-name').innerHTML = channel.name;
         document.getElementById('channel-location').innerHTML = 'by <a href="http://w3w.co/'
             + channel.createdBy
             + '" target="_blank"><strong>'
             + channel.createdBy
-            + '</strong></a>';
+            + '</strong></a>';*/
+        switchChannel(channels[channels.length-1]);
     }
 }
 
@@ -309,7 +391,12 @@ function createChannelElement(channelObject) {
      */
 
     // create a channel
-    var channel = $('<li>').text(channelObject.name);
+    //var channel = $('<li>').text(channelObject.name);
+    /* Fixing faulty code */
+    /*var channelName = channelObject.name.slice(1,channelObject.name.length);
+    channelName = channelName.charAt(0).toLowerCase()+ channelName.slice(1,channelName.length);*/
+
+    var channel = $('<li onclick="switchChannel(channels['+searchChannel(channelObject.name)+'])">').text(channelObject.name);
 
     // create and append channel meta
     var meta = $('<span>').addClass('channel-meta').appendTo(channel);
@@ -319,8 +406,8 @@ function createChannelElement(channelObject) {
     $('<i>').addClass('fa-star').addClass(channelObject.starred ? 'fas' : 'far').appendTo(meta);
 
     // boxes for some additional metadata
-    $('<span>').text(channelObject.expiresIn + ' min').appendTo(meta);
-    $('<span>').text(channelObject.messageCount + ' new').appendTo(meta);
+    $('<span>').text(channelObject.expiresIn + ' min').attr('id', 'exCh'+searchChannel(channelObject.name)).appendTo(meta);
+    $('<span>').text(channelObject.messageCount + ' new').attr('id', 'msgCh'+searchChannel(channelObject.name)).appendTo(meta);
 
     // The chevron
     $('<i>').addClass('fas').addClass('fa-chevron-right').appendTo(meta);
@@ -328,6 +415,18 @@ function createChannelElement(channelObject) {
     // return the complete channel
     return channel;
 }
+
+function searchChannel(chName){
+
+    var i=0;
+    while(i<channels.length){
+        if (channels[i].name == chName){
+            return i;
+        }
+        i++;
+    }
+}
+
 
 /**
  * #10 #new: This function enables the "create new channel"-mode
@@ -354,4 +453,48 @@ function abortCreationMode() {
     $('#app-bar-create').removeClass('show');
     $('#button-create').hide();
     $('#button-send').show();
+}
+
+var intervalID = window.setInterval(myCallback, 10000);
+var t = 0;
+
+function myCallback() {
+  // Your code here
+    console.log('Updating message elements...');
+    var expires;
+    var now;
+
+    t++;
+
+    var i=0;
+    while (i<currentChannel.messages.length){
+        expires = currentChannel.messages[i].expiresOn;
+        now = new Date();
+        if (now>expires){
+            currentChannel.messages.splice(i,1);
+            currentChannel.messageCount--;
+        }
+        i++;
+    }
+
+    /*console.log(currentChannel.expiresIn);
+    currentChannel.expiresIn = (currentChannel.expiresIn - (1.0/6));
+    console.log(1/6);
+    console.log(currentChannel.expiresIn);*/
+
+    if (t==6){
+        t=0;
+        i=0;
+        while(i<channels.length){
+            if (channels[i].expiresIn>0){
+                channels[i].expiresIn--;
+            }
+            i++;
+        }
+    }
+
+
+
+    showMessages();
+    listChannelsVoid();
 }

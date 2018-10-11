@@ -4,8 +4,8 @@ var yummy = {
     createdOn: new Date(2016, 03, 01), /* month 0 is jan. */
     createdBy: "minus.plus.yummy",
     starred: false,
-    expiresIn: 100,
-    messageCount: 999,
+    expiresIn: 0,
+    messageCount: 0,
     messages : []           // #10 #message s property in #chl object
 };
 
@@ -14,8 +14,8 @@ var sevencontinents = {
     createdOn: new Date(2016, 03, 02), /* month 0 is jan. */
     createdBy: "cheeses.yard.applies",
     starred: true,
-    expiresIn: 60,
-    messageCount: 5,
+    expiresIn: 0,
+    messageCount: 0,
     messages : []           // #10 #message s property in #chl object
 
 };
@@ -25,8 +25,8 @@ var killerapp = {
     createdOn: new Date(2016, 08, 30), /* month 0 is jan. */
     createdBy: "lodge.bits.fake",
     starred: false,
-    expiresIn: 1,
-    messageCount: 10351,
+    expiresIn: 0,
+    messageCount: 0,
     messages : []           // #10 #message s property in #chl object
 
 };
@@ -36,19 +36,19 @@ var firstpersononmars = {
     createdOn: new Date(2016, 08, 28), /* month 0 is jan. */
     createdBy: "snipped.atom.grid",
     starred: true,
-    expiresIn: 30003,
-    messageCount: 2424,
+    expiresIn: 0,
+    messageCount: 0,
     messages : []           // #10 #message s property in #chl object
 
 };
 
 var octoberfest = {
-    name: "#Octoberfest",
+    name: "#OctoberFest",
     createdOn: new Date(2016, 08, 25), /* month 0 is jan. */
     createdBy: "vocally.clearly.crawled",
     starred: false,
-    expiresIn: 60,
-    messageCount: 321,
+    expiresIn: 0,
+    messageCount: 0,
     messages : []           // #10 #message s property in #chl object
 
 };

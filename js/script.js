@@ -37,7 +37,7 @@ $( document ).ready(function() {
  */
 function switchChannel(channelObject) {
     // Log the channel switch
-    console.log("Tuning in to channel", channelObject);
+    console.log("Tuning in to channel", channelObject.name);
 
     // #10 #new: switching channels aborts "create new channel"-mode
     abortCreationMode();
@@ -73,7 +73,7 @@ function switchChannel(channelObject) {
 
 function showMessages(){
     $('#messages').empty();
-    console.log(currentChannel.messages.length+' messages');
+    console.log(currentChannel.name+': '+currentChannel.messages.length+' messages');
     var i=0;
     while (i<currentChannel.messages.length){
         $('#messages').append(createMessageElement(currentChannel.messages[i]));
@@ -154,12 +154,7 @@ function Message(text) {
 
     this.number = ++currentChannel.messageCount;
 
-
-    var a = Date.parse(new Date());
-    var b = Date.parse(this.expiresOn);
-    var msgExpiresIn = Math.round((b-a)/(1000*60));
-    console.log(msgExpiresIn);
-    console.log(currentChannel.expiresIn);
+    var msgExpiresIn = minutesLeft(this.expiresOn,1);
 
     currentChannel.expiresIn = (msgExpiresIn>currentChannel.expiresIn) ? msgExpiresIn : currentChannel.expiresIn;
 }
@@ -177,7 +172,7 @@ function sendMessage() {
 
     // Creating and logging a message with content from the input field
     var message = new Message(text);
-    console.log("New message:", message);
+    console.log("New message from: "+message.createdBy+". Text: "+text);
 
     // #10 #push the new #message to the current channel's messages array
     currentChannel.messages.push(message);
@@ -221,9 +216,7 @@ function sendMessage() {
 }*/
 
 function createMessageElement(messageObject){
-    var a = Date.parse(new Date());
-    var b = Date.parse(messageObject.expiresOn);
-    var msgExpiresIn = Math.round(10*(b-a)/(1000*60))/10;
+    var msgExpiresIn = minutesLeft(messageObject.expiresOn,10);
     var msgCreatedOn = messageObject.createdOn.toLocaleString();
 
     var exitMessage = actualCreateMessageElement(messageObject.createdBy,msgCreatedOn,msgExpiresIn,messageObject.text,messageObject.own,messageObject.number);
@@ -242,17 +235,15 @@ function actualCreateMessageElement(a,b,c,d,e,f){
 }
 
 function fiveMore(a){
-    console.log("msg"+a);
-    var newTime = parseFloat($('#msg'+a+' h3 em').html())+5;
+    console.log("5 more minutes. Channel: "+currentChannel.name+". Message: msg"+a);
+    var newTime = Math.ceil(parseFloat($('#msg'+a+' h3 em').html()))+5;
     $('#msg'+a+' h3 em').html(newTime+' min. left');
 
     newTime = new Date(Date.now() + newTime * 60 * 1000);
 
     currentChannel.messages[a-1].expiresOn = newTime;
 
-    var a = Date.parse(new Date());
-    var b = Date.parse(newTime);
-    var msgExpiresIn = Math.round((b-a)/(1000*60));
+    var msgExpiresIn = minutesLeft(newTime,1);
     currentChannel.expiresIn = (msgExpiresIn>currentChannel.expiresIn) ? msgExpiresIn : currentChannel.expiresIn;
     listChannelsVoid();
 }
@@ -356,7 +347,7 @@ function createChannel() {
         // Create DOM element of new channel object and append it to channels list.
         $('#channels ul').append(createChannelElement(channel));
         // Log channel creation.
-        console.log('New channel: ' + channel);
+        console.log('New channel: ' + channel.name);
         // Send initial message.
         sendMessage();
         // Empty channel name input field.
@@ -456,45 +447,41 @@ function abortCreationMode() {
 }
 
 var intervalID = window.setInterval(myCallback, 10000);
-var t = 0;
 
 function myCallback() {
   // Your code here
     console.log('Updating message elements...');
-    var expires;
-    var now;
-
-    t++;
 
     var i=0;
-    while (i<currentChannel.messages.length){
-        expires = currentChannel.messages[i].expiresOn;
-        now = new Date();
-        if (now>expires){
-            currentChannel.messages.splice(i,1);
-            currentChannel.messageCount--;
+    var j=0;
+    var myExpires;
+    var maxExpires=0;
+    while(i<channels.length){
+        j=0;
+        maxExpires=0;
+        while(j<channels[i].messages.length){
+            myExpires = channels[i].messages[j].expiresOn;
+            if (new Date()>myExpires){
+                channels[i].messages.splice(j,1);
+                channels[i].messageCount--;
+            }
+
+            myExpires = Math.floor(minutesLeft(myExpires,10));
+            if (myExpires>maxExpires){
+                maxExpires = myExpires;
+            }
+            j++;
         }
+        channels[i].expiresIn = maxExpires;
         i++;
     }
 
-    /*console.log(currentChannel.expiresIn);
-    currentChannel.expiresIn = (currentChannel.expiresIn - (1.0/6));
-    console.log(1/6);
-    console.log(currentChannel.expiresIn);*/
-
-    if (t==6){
-        t=0;
-        i=0;
-        while(i<channels.length){
-            if (channels[i].expiresIn>0){
-                channels[i].expiresIn--;
-            }
-            i++;
-        }
-    }
-
-
-
-    showMessages();
     listChannelsVoid();
+}
+
+function minutesLeft(expiresOn,factor){
+
+    var a = Date.parse(new Date());
+    var b = Date.parse(expiresOn);
+    return Math.round(factor*(b-a)/(1000*60))/factor;
 }
